@@ -1,15 +1,14 @@
 /* This file was created by Neliton Mateus */
 class MD5Util {
 
-    constructor() {
-    }   
+    constructor() {}   
 
     HASH(d) {
         return (this.M(this.V(this.Y(this.X(d), 8 * d.length))));
     }
 
     /* this.md5 Functions */
-    /* I need to create it because I need to send a hash on marvel developer's request */
+    /* I need to create this because I need to send a hash on marvel developer's request */
     M(d) {
         for (var _, m = "0123456789ABCDEF", f = "", r = 0; r < d.length; r++) _ = d.charCodeAt(r), f += m.charAt(_ >>> 4 & 15) + m.charAt(15 & _);
         return f

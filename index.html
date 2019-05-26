@@ -9,9 +9,13 @@
 
 	<title>Marvel Heroes - Neliton Mateus</title>
 	<link rel="stylesheet" type="text/css" href="index.css" />
+	<link rel="stylesheet" type="text/css" href="loader.css" />
+	<link rel="stylesheet" type="text/css" href="table.css" />
+	<link rel="stylesheet" type="text/css" href="paginator.css" />
 </head>
 
 <body>
+
 	<header>
 		<div>
 			<h2 class="black-font font-bottom-line">
@@ -25,29 +29,40 @@
 			NELITON MATEUS
 		</h2>
 	</header>
+
 	<div class="search-input">
-		<label class="regular-font">Nome do Personagem</label>
+		<label class="regular-font">
+			Nome do Personagem
+		</label>
 		<input type="text">
 	</div>
-	<section>
-		<table>
-			<thead>
-				<tr>
-					<th id="headerPersonagemCol" scope="col"></th>
-					<th scope="col">Séries</th>
-					<th scope="col">Eventos</th>
-				</tr>
-			</thead>
-			<tbody>
 
-			</tbody>
-		</table>
-	</section>
-	<div class="paginator">
-		<div class="paginator-arrow-left paginator-disabled"></div>
-		<div id="pages" class="paginator-pages">
+	<div id="loader"></div>
+
+	<div id="content">
+
+		<section>
+			<table>
+				<thead>
+					<tr>
+						<th id="headerPersonagemCol" scope="col"></th>
+						<th scope="col">Séries</th>
+						<th scope="col">Eventos</th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+		</section>
+
+		<h2 class="light-font">Não há dados para exibir</h2>
+
+		<div class="paginator">
+			<div id="prev-page" class="paginator-arrow-left paginator-disabled"></div>
+			<div id="pages" class="paginator-pages"></div>
+			<div id="next-page" class="paginator-arrow-right"></div>
 		</div>
-		<div class="paginator-arrow-right"></div>
+
 	</div>
 
 	<footer>

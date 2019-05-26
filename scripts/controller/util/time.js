@@ -1,9 +1,7 @@
 class TimeUtil {
 
-    constructor(){
+    constructor(){}
 
-    }
-    
     getTimeStamp() {
         return (Date.now() / 1000 | 0).toString();
     }

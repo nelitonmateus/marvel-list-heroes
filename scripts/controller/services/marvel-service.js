@@ -1,8 +1,6 @@
 class MarvelHeroService {
 
     constructor() {
-        // this.privateKey = '68e40387a4be21cef729530c44056d0a2cae12e9';
-        // this.publicKey = '102d70bd77e4d3b71b2017320da567a3';
 
         /* Class Objects */
         this.paginatorUtil = new PaginatorUtil();
@@ -17,17 +15,25 @@ class MarvelHeroService {
         this.limit = 10;
         this.orderBy = 'name';
         this.lastFilter = '';
+        this.lastInputText = '';
 
         /* Pagination variables */
         this.totalItems = 0;
         this.visiblePages = 6;
         this.selectedPage = 1;
 
+        this.triggeredSmartphoneResolution = false;
+
         /* DOM Elements */
         this.tableBody = document.querySelector("tbody");
         this.input = document.querySelector("input");
         this.headerPersonagemCol = document.querySelector("#headerPersonagemCol");
         this.paginatorPages = document.querySelector("#pages");
+        this.loader = document.querySelector('#loader');
+        this.content = document.querySelector('#content');
+        this.noDataToShowMessage = document.querySelector('#content h2');
+        this.prevPageArrow = document.querySelector('#prev-page');
+        this.nextPageArrow = document.querySelector('#next-page');
 
         /* Backspace, Enter, Blank space, Delete */
         this.specialSearchKeyCodes = [8, 13, 32, 46];
@@ -40,17 +46,31 @@ class MarvelHeroService {
         var instance = this;
 
         this.input.addEventListener('keyup', this.debounce((e) => {
-            if ((e.keyCode >= 40 && e.keyCode <= 90) || this.specialSearchKeyCodes.indexOf(e.keyCode) > -1) {
+            if (((e.keyCode >= 40 && e.keyCode <= 90) || this.specialSearchKeyCodes.indexOf(e.keyCode) > -1) || this.lastInputText != this.input.value) {
+                this.lastInputText = this.input.value;
                 this.searchHeroByName(this.input.value.trimLeft().trimRight());
             }
         }, 400));
 
         window.onload = function (e) {
-            instance.checkTableHeaderName();
+            instance.checkResolution();
         };
 
         window.addEventListener('resize', () => {
-            instance.checkTableHeaderName();
+            instance.checkResolution();
+            if(this.triggeredSmartphoneResolution){                
+                location.reload();
+            }
+        })
+
+        this.prevPageArrow.addEventListener('click', (e) => {
+            this.selectedPage--;
+            this.goToPage(this.selectedPage);
+        })
+
+        this.nextPageArrow.addEventListener('click', (e) => {
+            this.selectedPage++;
+            this.goToPage(this.selectedPage);
         })
 
         this.addPaginatorEventListener();
@@ -61,13 +81,17 @@ class MarvelHeroService {
         this.selectedPage = 1;
 
         if (heroName) {
+            this.lastFilter = `${this.baseUrl}nameStartsWith=${heroName}`;
             this.getHeroes(`${this.baseUrl}nameStartsWith=${heroName}&`, this.timeUtil.getTimeStamp())
         } else {
+            this.lastFilter = '';
             this.getHeroes(this.baseUrl, this.timeUtil.getTimeStamp());
         }
     }
 
     getHeroes(baseUrl, timestamp) {
+        this.startLoading();
+
         var instance = this;
         instance.ajax.open("GET", `${baseUrl}orderBy=${this.orderBy}&limit=${this.limit}&ts=${timestamp}&apikey=${this.publicKey}&hash=${this.getHash(timestamp)}`, true);
         instance.ajax.send();
@@ -80,18 +104,39 @@ class MarvelHeroService {
 
                 instance.updatePagination(JSON.parse(data).data.total);
 
-                results.map((character, row) => {
-                    instance.addRow(row, character)
-                })
+                if (results.length === 0) {
+                    instance.noDataToShow();
+                } else {
+                    instance.showPagination();
+                    results.map((character, row) => {
+                        instance.addRow(row, character)
+                    })
+                }
 
+                instance.stopLoading();
+            } else if (instance.ajax.readyState == 4) {
+                instance.stopLoading();
+                instance.noCharacterToShow();
             }
         }
 
     }
 
-    checkTableHeaderName() {
+    startLoading() {
+        this.content.style.display = 'none';
+        this.loader.style.display = 'block';
+    }
+
+    stopLoading() {
+        this.content.style.display = 'flex';
+        this.loader.style.display = 'none';
+    }
+
+    checkResolution() {
         if (window.innerWidth <= 576) {
             this.headerPersonagemCol.innerHTML = 'Nome';
+            this.visiblePages = 3;
+            this.triggeredSmartphoneResolution = true;
         } else {
             this.headerPersonagemCol.innerHTML = 'Personagem';
         }
@@ -113,43 +158,67 @@ class MarvelHeroService {
         var characterSeries = character.getSeries();
         var characterEvents = character.getEvents();
 
-        var row = this.tableBody.insertRow(rowNumber);
+        var row = this.tableBody.insertRow(rowNumber);   
 
+        this.addCharacterColumn(row, character);
+        this.addCharacterSeriesColumn(row, characterSeries);
+        this.addCharacterEventsColumn(row, characterEvents);
+    }
+
+    addCharacterColumn(row, character) {
         var characterCell = row.insertCell(0);
-        var seriesCell = row.insertCell(1);
-        var eventsCell = row.insertCell(2);
-
         characterCell.innerHTML = `
-        <div class="item-personagem">
-            <img src="${character.getThumbnail()}"
-                alt="Character thumbnail">
+            <div class="item-personagem">
+                <img src="${character.getThumbnail()}"
+                    alt="Character thumbnail">
 
-            <h3>${character.getName()}</h3>
-        </div>`;
+                <h3>${character.getName()}</h3>
+            </div>
+        `;
+    }
 
+    addCharacterSeriesColumn(row, characterSeries) {
+        var seriesCell = row.insertCell(1);
         if (characterSeries.length === 0) {
             seriesCell.innerHTML = `
                 <h3> Não possui séries </h3>
             `;
-        } else {
+        }
+        else {
             seriesCell.innerHTML = `
                 <h3>${characterSeries[0] ? characterSeries[0] : ' '}</h3>
                 <h3>${characterSeries[1] ? characterSeries[1] : ' '}</h3>
                 <h3>${characterSeries[2] ? characterSeries[2] : ' '}</h3>
             `;
         }
+    }
 
+    addCharacterEventsColumn(row, characterEvents) {
+        var eventsCell = row.insertCell(2);
         if (characterEvents.length === 0) {
             eventsCell.innerHTML = `
                 <h3> Não possui eventos </h3>
             `;
-        } else {
+        }
+        else {
             eventsCell.innerHTML = `
                 <h3>${characterEvents[0] ? characterEvents[0] : ' '}</h3>
                 <h3>${characterEvents[1] ? characterEvents[1] : ' '}</h3>
                 <h3>${characterEvents[2] ? characterEvents[2] : ' '}</h3>
             `;
         }
+    }
+
+    noDataToShow() {
+        this.noDataToShowMessage.style.display = 'block';
+        this.nextPageArrow.style.display = 'none';
+        this.prevPageArrow.style.display = 'none';
+    }
+
+    showPagination() {
+        this.noDataToShowMessage.style.display = 'none';
+        this.nextPageArrow.style.display = 'block';
+        this.prevPageArrow.style.display = 'block';
     }
 
     getHash(timeStamp) {
@@ -159,17 +228,17 @@ class MarvelHeroService {
     addPaginatorEventListener() {
         document.querySelectorAll('.paginator-item').forEach(btn => {
             btn.addEventListener('click', (event) => {
-                this.removeAllClass(document.querySelectorAll('.paginator-item'),'paginator-item-active');
+                this.removeAllClass(document.querySelectorAll('.paginator-item'), 'paginator-item-active');
                 event.target.classList.add('paginator-item-active');
                 this.selectedPage = +event.target.innerHTML;
                 this.goToPage(event.target.innerHTML);
             })
-        })
+        });
     }
 
     goToPage(page) {
         this.removeAllChildrens(this.tableBody);
-        this.getHeroes(`${this.baseUrl}&offset=${(page - 1) * this.limit}`, this.timeUtil.getTimeStamp());
+        this.getHeroes(`${(this.lastFilter != '' ? this.lastFilter : this.baseUrl)}&offset=${(page - 1) * this.limit}`, this.timeUtil.getTimeStamp());
     }
 
     updatePagination(total) {
@@ -177,7 +246,25 @@ class MarvelHeroService {
 
         this.removeAllChildrens(this.paginatorPages);
 
+        this.addPaginatorItems(paginationInfo);
+        this.addPaginatorEventListener();
+
+        this.removeAllClass(document.querySelectorAll('.paginator-arrow-left'), 'paginator-arrow-left-disabled');
+        this.removeAllClass(document.querySelectorAll('.paginator-arrow-right'), 'paginator-arrow-right-disabled');
+
+        if (paginationInfo.currentPage == paginationInfo.startPage) {
+            document.querySelector('.paginator-arrow-left').classList.add('paginator-arrow-left-disabled');
+        }
+
+        if (paginationInfo.currentPage == paginationInfo.totalPages) {
+            document.querySelector('.paginator-arrow-right').classList.add('paginator-arrow-right-disabled');
+        }
+
+    }
+
+    addPaginatorItems(paginationInfo) {
         paginationInfo.pages.forEach((e) => {
+
             let pageElement = document.createElement('div');
             pageElement.classList.add('paginator-item');
             pageElement.innerHTML = e;
@@ -185,25 +272,8 @@ class MarvelHeroService {
             if (e == this.selectedPage) {
                 pageElement.classList.add('paginator-item-active');
             }
-
             this.paginatorPages.appendChild(pageElement);
-        })
-
-        this.addPaginatorEventListener();
-
-        this.removeAllClass(document.querySelectorAll('.paginator-arrow-left'),'paginator-arrow-left-disabled');
-        this.removeAllClass(document.querySelectorAll('.paginator-arrow-right'),'paginator-arrow-right-disabled');
-
-        console.log(paginationInfo);
-
-        if(paginationInfo.currentPage == paginationInfo.startPage){
-            document.querySelector('.paginator-arrow-left').classList.add('paginator-arrow-left-disabled');
-        }
-
-        if(paginationInfo.currentPage == paginationInfo.totalPages){
-            document.querySelector('.paginator-arrow-right').classList.add('paginator-arrow-right-disabled');
-        }
-
+        });
     }
 
     removeAllClass(elements, classToRemove) {

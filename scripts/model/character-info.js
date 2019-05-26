@@ -1,18 +1,18 @@
 class CharacterInfo {
-    constructor(character){
-       // console.log(character);
+
+    constructor(character) {
         this.characterData = character;
     }
 
-    getThumbnail(){
+    getThumbnail() {
         return this.characterData.thumbnail.path + '.' + this.characterData.thumbnail.extension;
     }
 
-    getName(){
+    getName() {
         return this.characterData.name;
     }
 
-    getSeries(){
+    getSeries() {
         var series = this.characterData.series.items.slice(0,3);
         var result = [];
 
@@ -23,7 +23,7 @@ class CharacterInfo {
         return result;
     }
 
-    getEvents(){
+    getEvents() {
         var events = this.characterData.events.items.slice(0,3);
         var result = [];
 
