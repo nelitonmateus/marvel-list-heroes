@@ -1,8 +1,8 @@
 class MarvelHeroService {
 
     constructor() {
-        // var privateKey = '68e40387a4be21cef729530c44056d0a2cae12e9';
-        // var publicKey = '102d70bd77e4d3b71b2017320da567a3';
+        // this.privateKey = '68e40387a4be21cef729530c44056d0a2cae12e9';
+        // this.publicKey = '102d70bd77e4d3b71b2017320da567a3';
 
         this.timeUtil = new TimeUtil();
         this.MD5 = new MD5Util();
@@ -16,20 +16,32 @@ class MarvelHeroService {
 
         this.tableBody = document.querySelector("tbody");
         this.input = document.querySelector("input");
+        this.headerPersonagemCol = document.querySelector("#headerPersonagemCol");
 
         this.getHeroes(this.baseUrl, this.timeUtil.getTimeStamp());
         this.initEventListeners();
 
         /* Backspace, Enter, Blank space, Delete*/
-        this.specialSearchKeyCodes = [8,13,32,46];
+        this.specialSearchKeyCodes = [8, 13, 32, 46];
+
     }
 
     initEventListeners() {
         this.input.addEventListener('keyup', this.debounce((e) => {
-            if((e.keyCode >= 40 && e.keyCode <= 90) || this.specialSearchKeyCodes.indexOf(e.keyCode) > -1){
+            if ((e.keyCode >= 40 && e.keyCode <= 90) || this.specialSearchKeyCodes.indexOf(e.keyCode) > -1) {
                 this.searchHeroByName(this.input.value.trimLeft().trimRight());
             }
         }, 400));
+
+        var instance = this;
+        
+        window.onload = function (e) {
+            instance.checkTableHeaderName();
+        };
+
+        window.addEventListener('resize', () => {
+            instance.checkTableHeaderName();
+        })
     }
 
     searchHeroByName(heroName) {
@@ -62,9 +74,28 @@ class MarvelHeroService {
 
     }
 
+    checkTableHeaderName() {
+        if (window.innerWidth <= 576) {
+            this.headerPersonagemCol.innerHTML = 'Nome';
+        }else{
+            this.headerPersonagemCol.innerHTML = 'Personagem';
+        }
+    }
+
     clearTable() {
         while (this.tableBody.hasChildNodes()) {
             this.tableBody.removeChild(this.tableBody.firstChild);
+        }
+    }
+
+    debounce = (fn, time) => {
+        let timeout;
+
+        return function () {
+            const functionCall = () => fn.apply(this, arguments);
+
+            clearTimeout(timeout);
+            timeout = setTimeout(functionCall, time);
         }
     }
 
@@ -115,16 +146,4 @@ class MarvelHeroService {
     getHash(timeStamp) {
         return this.MD5.HASH(timeStamp + this.privateKey + this.publicKey).toLowerCase();
     }
-
-    debounce = (fn, time) => {
-        let timeout;
-
-        return function () {
-            const functionCall = () => fn.apply(this, arguments);
-
-            clearTimeout(timeout);
-            timeout = setTimeout(functionCall, time);
-        }
-    }
-
 }
