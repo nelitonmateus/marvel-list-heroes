@@ -1,0 +1,1 @@
+window.marvelHeroService = new MarvelHeroService();
