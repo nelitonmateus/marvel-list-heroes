@@ -8,24 +8,49 @@ class MarvelHeroService {
         this.MD5 = new MD5Util();
         this.ajax = new XMLHttpRequest();
 
-        this.baseUrl = 'https://gateway.marvel.com:443/v1/public/characters?orderBy=name&limit=10&';
+        this.baseUrl = 'https://gateway.marvel.com:443/v1/public/characters?';
         this.publicKey = '4c0dc4701d397d82609a8906ef642407';
         this.privateKey = '3432c61dd5d29334205e54a350807b961f47524a';
+        this.limit = 10;
+        this.orderBy = 'name';
 
-        this.timeStamp = this.timeUtil.getTimeStamp();
         this.tableBody = document.querySelector("tbody");
-        this.getHeroes(this.ajax);
+        this.input = document.querySelector("input");
+
+        this.getHeroes(this.baseUrl, this.timeUtil.getTimeStamp());
+        this.initEventListeners();
+
+        /* Backspace, Enter, Blank space, Delete*/
+        this.specialSearchKeyCodes = [8,13,32,46];
     }
 
-    getHeroes(ajax) {
+    initEventListeners() {
+        this.input.addEventListener('keyup', this.debounce((e) => {
+            if((e.keyCode >= 40 && e.keyCode <= 90) || this.specialSearchKeyCodes.indexOf(e.keyCode) > -1){
+                this.searchHeroByName(this.input.value.trimLeft().trimRight());
+            }
+        }, 400));
+    }
+
+    searchHeroByName(heroName) {
+        this.clearTable();
+
+        if (heroName) {
+            this.getHeroes(`${this.baseUrl}nameStartsWith=${heroName}&`, this.timeUtil.getTimeStamp())
+        } else {
+            this.getHeroes(this.baseUrl, this.timeUtil.getTimeStamp());
+        }
+    }
+
+    getHeroes(baseUrl, timestamp) {
         var instance = this;
-        ajax.open("GET", `${this.baseUrl}ts=${this.timeStamp}&apikey=${this.publicKey}&hash=${this.getHash(this.timeStamp)}`, true);
-        ajax.send();
-        ajax.onreadystatechange = function () {
+        instance.ajax.open("GET", `${baseUrl}orderBy=${this.orderBy}&limit=${this.limit}&ts=${timestamp}&apikey=${this.publicKey}&hash=${this.getHash(timestamp)}`, true);
+        instance.ajax.send();
+        instance.ajax.onreadystatechange = function () {
 
-            if (ajax.readyState == 4 && ajax.status == 200) {
+            if (instance.ajax.readyState == 4 && instance.ajax.status == 200) {
 
-                var data = ajax.responseText;
+                var data = instance.ajax.responseText;
                 var results = JSON.parse(data).data.results;
 
                 results.map((character, row) => {
@@ -35,6 +60,12 @@ class MarvelHeroService {
             }
         }
 
+    }
+
+    clearTable() {
+        while (this.tableBody.hasChildNodes()) {
+            this.tableBody.removeChild(this.tableBody.firstChild);
+        }
     }
 
     addRow(rowNumber, characterInfo) {
@@ -83,6 +114,17 @@ class MarvelHeroService {
 
     getHash(timeStamp) {
         return this.MD5.HASH(timeStamp + this.privateKey + this.publicKey).toLowerCase();
+    }
+
+    debounce = (fn, time) => {
+        let timeout;
+
+        return function () {
+            const functionCall = () => fn.apply(this, arguments);
+
+            clearTimeout(timeout);
+            timeout = setTimeout(functionCall, time);
+        }
     }
 
 }

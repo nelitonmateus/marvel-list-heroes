@@ -68,6 +68,8 @@
 .item-personagem img {
     height: 58px;
     width: 58px;
+    min-height: 58px;
+    min-width: 58px;
     margin-right: 25px;
     border-radius: 100%;
 }
