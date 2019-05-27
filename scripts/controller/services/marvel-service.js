@@ -30,16 +30,22 @@ class MarvelHeroService {
         this.headerPersonagemCol = document.querySelector("#headerPersonagemCol");
         this.paginatorPages = document.querySelector("#pages");
         this.loader = document.querySelector('#loader');
+        this.loaderSeries = document.querySelector('#loader-series');
+        this.loaderEvents = document.querySelector('#loader-events');
         this.content = document.querySelector('#content');
         this.noDataToShowMessage = document.querySelector('#content h2');
         this.prevPageArrow = document.querySelector('#prev-page');
         this.nextPageArrow = document.querySelector('#next-page');
+        this.modal = document.querySelector("#detail-modal");
+        this.modalSerieList = document.querySelector("#modal-serie-list");
+        this.modalEventList = document.querySelector("#modal-event-list");
+        this.characterName = document.querySelector("#character-name");
 
         /* Backspace, Enter, Blank space, Delete */
         this.specialSearchKeyCodes = [8, 13, 32, 46];
 
         this.initEventListeners();
-        this.getHeroes(this.baseUrl, this.timeUtil.getTimeStamp());
+        this.getCharacters(this.baseUrl, this.timeUtil.getTimeStamp());
     }
 
     initEventListeners() {
@@ -56,22 +62,28 @@ class MarvelHeroService {
             instance.checkResolution();
         };
 
+        window.onclick = function (event) {
+            if (event.target == instance.modal) {
+                instance.closeModal();
+            }
+        };
+
         window.addEventListener('resize', () => {
             instance.checkResolution();
-            if(this.triggeredSmartphoneResolution){                
+            if (this.triggeredSmartphoneResolution) {
                 location.reload();
             }
-        })
+        });
 
         this.prevPageArrow.addEventListener('click', (e) => {
             this.selectedPage--;
             this.goToPage(this.selectedPage);
-        })
+        });
 
         this.nextPageArrow.addEventListener('click', (e) => {
             this.selectedPage++;
             this.goToPage(this.selectedPage);
-        })
+        });
 
         this.addPaginatorEventListener();
     }
@@ -82,14 +94,14 @@ class MarvelHeroService {
 
         if (heroName) {
             this.lastFilter = `${this.baseUrl}nameStartsWith=${heroName}`;
-            this.getHeroes(`${this.baseUrl}nameStartsWith=${heroName}&`, this.timeUtil.getTimeStamp())
+            this.getCharacters(`${this.baseUrl}nameStartsWith=${heroName}&`, this.timeUtil.getTimeStamp())
         } else {
             this.lastFilter = '';
-            this.getHeroes(this.baseUrl, this.timeUtil.getTimeStamp());
+            this.getCharacters(this.baseUrl, this.timeUtil.getTimeStamp());
         }
     }
 
-    getHeroes(baseUrl, timestamp) {
+    getCharacters(baseUrl, timestamp) {
         this.startLoading();
 
         var instance = this;
@@ -110,7 +122,8 @@ class MarvelHeroService {
                     instance.showPagination();
                     results.map((character, row) => {
                         instance.addRow(row, character)
-                    })
+                    });
+                    instance.addListItemEventListener();
                 }
 
                 instance.stopLoading();
@@ -120,6 +133,76 @@ class MarvelHeroService {
             }
         }
 
+    }
+
+    getCharacterEvents(id, timestamp) {
+
+        var instance = this;
+        instance.ajax.open("GET", `https://gateway.marvel.com:443/v1/public/characters/${id}/events?limit=3&ts=${timestamp}&apikey=${this.publicKey}&hash=${this.getHash(timestamp)}`, true);
+        instance.ajax.send();
+        instance.ajax.onreadystatechange = function () {
+
+            if (instance.ajax.readyState == 4) {
+                if (instance.ajax.status == 200) {
+
+                    var data = instance.ajax.responseText;
+                    var results = JSON.parse(data).data.results;
+                    if (results.length === 0) {
+                        instance.addListCard(instance.modalEventList, 'Não possui eventos')
+                    } else {
+                        for (let i = 0; i < results.length; i++) {
+                            instance.addListCard(instance.modalEventList, results[i], false);
+                        }
+                    }
+
+                }
+                instance.stopLoadingModalEvents();
+            }
+        }
+
+    }
+
+
+    getCharacterSeries(id, timestamp, callback) {
+
+        var instance = this;
+        instance.ajax.open("GET", `https://gateway.marvel.com:443/v1/public/characters/${id}/series?limit=3&ts=${timestamp}&apikey=${this.publicKey}&hash=${this.getHash(timestamp)}`, true);
+        instance.ajax.send();
+        instance.ajax.onreadystatechange = function () {
+            if (instance.ajax.readyState == 4) {
+                if (instance.ajax.status == 200) {
+
+                    var data = instance.ajax.responseText;
+                    var results = JSON.parse(data).data.results;
+                    if (results.length === 0) {
+                        instance.addListCard(instance.modalSerieList, 'Não possui séries')
+                    } else {
+                        for (let i = 0; i < results.length; i++) {
+                            instance.addListCard(instance.modalSerieList, results[i], true);
+                        }
+                    }
+                }
+                instance.stopLoadingModalSeries();
+                callback();
+            }
+
+        }
+    }
+
+    startLoadingModalSeries() {
+        this.loaderSeries.style.display = 'block';
+    }
+
+    stopLoadingModalSeries() {
+        this.loaderSeries.style.display = 'none';
+    }
+
+    startLoadingModalEvents() {
+        this.loaderEvents.style.display = 'block';
+    }
+
+    stopLoadingModalEvents() {
+        this.loaderEvents.style.display = 'none';
     }
 
     startLoading() {
@@ -158,11 +241,38 @@ class MarvelHeroService {
         var characterSeries = character.getSeries();
         var characterEvents = character.getEvents();
 
-        var row = this.tableBody.insertRow(rowNumber);   
+        var row = this.tableBody.insertRow(rowNumber);
+        row.id = character.getId();
 
         this.addCharacterColumn(row, character);
         this.addCharacterSeriesColumn(row, characterSeries);
         this.addCharacterEventsColumn(row, characterEvents);
+    }
+
+    addListCard(element, value, isSerie) {
+        let div = document.createElement('div');
+
+        if (value == 'Não possui séries' || value == 'Não possui eventos') {
+            div.innerHTML = `
+            <div class="modal-list-card" style="justify-content:center;align-items:center">                
+                    <h4>${value}</h4>
+                </div>
+            </div>`;
+        } else {
+            div.innerHTML = `
+                <div class="modal-list-card">
+                    <img src="${value.thumbnail.path}.${value.thumbnail.extension}">
+                    <div class="modal-list-card-content">
+                        <div class="modal-list-card-title">
+                            <h2>${value.title}</h2>
+                            <h2>${isSerie ? value.startYear : value.start.substring(0, 4)} - ${isSerie ? value.endYear : value.end.substring(0, 4)}</h2>
+                        </div>                        
+                        <h4>${value.description ? (value.description.substring(0, 150) + '...') : ''}</h4>
+                    </div>
+                </div>`;
+        }
+
+        element.appendChild(div);
     }
 
     addCharacterColumn(row, character) {
@@ -221,6 +331,14 @@ class MarvelHeroService {
         this.prevPageArrow.style.display = 'block';
     }
 
+    showModal() {
+        this.modal.style.display = 'block';
+    }
+
+    closeModal() {
+        this.modal.style.display = 'none';
+    }
+
     getHash(timeStamp) {
         return this.MD5.HASH(timeStamp + this.privateKey + this.publicKey).toLowerCase();
     }
@@ -236,9 +354,25 @@ class MarvelHeroService {
         });
     }
 
+    addListItemEventListener() {
+        this.tableBody.childNodes.forEach((element) => {
+            element.addEventListener('click', () => {
+                this.removeAllChildrens(this.modalSerieList);
+                this.removeAllChildrens(this.modalEventList);
+                this.characterName.innerHTML = (element.children[0].children[0].children[1].innerHTML);
+                this.startLoadingModalEvents();
+                this.startLoadingModalSeries();
+                this.getCharacterSeries(element.id, this.timeUtil.getTimeStamp(), () => {
+                    this.getCharacterEvents(element.id, this.timeUtil.getTimeStamp());
+                });
+                this.showModal();
+            })
+        })
+    }
+
     goToPage(page) {
         this.removeAllChildrens(this.tableBody);
-        this.getHeroes(`${(this.lastFilter != '' ? this.lastFilter : this.baseUrl)}&offset=${(page - 1) * this.limit}`, this.timeUtil.getTimeStamp());
+        this.getCharacters(`${(this.lastFilter != '' ? this.lastFilter : this.baseUrl)}&offset=${(page - 1) * this.limit}`, this.timeUtil.getTimeStamp());
     }
 
     updatePagination(total) {

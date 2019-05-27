@@ -11,10 +11,35 @@
 	<link rel="stylesheet" type="text/css" href="index.css" />
 	<link rel="stylesheet" type="text/css" href="loader.css" />
 	<link rel="stylesheet" type="text/css" href="table.css" />
+	<link rel="stylesheet" type="text/css" href="modal.css" />
 	<link rel="stylesheet" type="text/css" href="paginator.css" />
 </head>
 
 <body>
+
+	<div id="detail-modal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2 id="character-name"></h2>
+			</div>
+			<div class="modal-body">
+				<div class="modal-column">
+					<h2 class="modal-column-header">Séries</h2>
+					<div id="loader-series"></div>	
+					<div id="modal-serie-list" class="modal-list">	
+					</div>				
+				</div>
+				<div class="modal-column">
+					<h2 class="modal-column-header">Eventos</h2>			
+					<div id="loader-events"></div>
+					<div id="modal-event-list" class="modal-list">	
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer">
+			</div>
+		</div>
+	</div>
 
 	<header>
 		<div>

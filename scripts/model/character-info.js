@@ -33,4 +33,8 @@ class CharacterInfo {
         
         return result;
     }
+
+    getId() {
+        return this.characterData.id;
+    }
 }
